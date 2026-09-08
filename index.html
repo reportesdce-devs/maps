@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+  <meta name="theme-color" content="#05080d" />
+  <title>Administrador de Rutas RA</title>
+  <style>
+    *{box-sizing:border-box}
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#05080d;color:#fff;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    #app{position:relative;width:100%;height:100%;background:#05080d}
+    #camera{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#05080d}
+    #arCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
+    .shade{position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(to bottom,rgba(0,0,0,.5),transparent 28%,transparent 62%,rgba(0,0,0,.65))}
+    .top{position:absolute;z-index:8;top:max(12px,env(safe-area-inset-top));left:12px;right:12px}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+    .name{font-weight:800;font-size:16px;text-shadow:0 2px 7px #000}
+    .sub{font-size:11px;color:#d0d7e1;margin-top:3px;text-shadow:0 2px 7px #000}
+    .badge{background:rgba(8,15,25,.72);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.16);padding:8px 10px;border-radius:999px;font-size:11px}
+    .hud{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+    .hudbox{min-width:0;background:rgba(8,15,25,.68);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.14);padding:8px 9px;border-radius:11px}
+    .hudbox small{display:block;font-size:9px;color:#aeb9c8;text-transform:uppercase;letter-spacing:.05em}
+    .hudbox b{display:block;font-size:11px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .cross{position:absolute;z-index:5;left:50%;top:46%;width:42px;height:42px;transform:translate(-50%,-50%);pointer-events:none}
+    .cross:before,.cross:after{content:"";position:absolute;background:rgba(255,255,255,.9);box-shadow:0 1px 4px #000}
+    .cross:before{left:0;right:0;top:20px;height:1px}
+    .cross:after{top:0;bottom:0;left:20px;width:1px}
+    .cross i{position:absolute;width:8px;height:8px;border:1px solid #fff;border-radius:50%;left:17px;top:17px}
+    #markers{position:absolute;inset:0;z-index:5;pointer-events:none}
+    .marker{position:absolute;transform:translate(-50%,-50%);text-align:center;will-change:left,top,transform}
+    .dot{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:rgba(37,99,235,.92);border:3px solid #fff;font-weight:900;box-shadow:0 4px 16px rgba(0,0,0,.45)}
+    .info{display:inline-block;margin-top:5px;background:rgba(0,0,0,.7);padding:4px 7px;border-radius:8px;font-size:10px;white-space:nowrap}
+    .status{position:absolute;z-index:8;left:12px;right:12px;bottom:165px;background:rgba(8,15,25,.74);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:9px 10px;font-size:11px;line-height:1.35}
+    .controls{position:absolute;z-index:9;left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));display:grid;gap:8px}
+    .mainrow{display:grid;grid-template-columns:58px 1fr 58px;gap:8px}
+    .subrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    button{min-height:48px;border:0;border-radius:14px;font:inherit;font-weight:800;cursor:pointer}
+    button:disabled{opacity:.45}
+    .ghost{background:rgba(8,15,25,.78);color:#fff;border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(8px)}
+    #addNode{background:#22c55e;color:#06130a;font-size:16px}
+    #startScreen{position:absolute;z-index:30;inset:0;display:grid;place-items:center;padding:22px;background:radial-gradient(circle at 50% 24%,#14223a,#05080d 62%)}
+    .card{width:min(100%,430px);background:#0c1523;border:1px solid #25354d;border-radius:22px;padding:20px}
+    .card h1{margin:0 0 8px;font-size:22px}
+    .card p{margin:0 0 14px;color:#aeb9ca;font-size:13px;line-height:1.45}
+    .card input{width:100%;height:48px;border-radius:12px;border:1px solid #2c3d56;background:#07111f;color:#fff;padding:0 12px;font-size:16px}
+    #startAR{width:100%;margin-top:10px;background:#2563eb;color:#fff}
+    .note{font-size:10px;color:#7f8da3;margin-top:10px;line-height:1.4}
+    #panel{position:absolute;z-index:20;left:12px;right:12px;bottom:12px;max-height:65%;display:none;background:rgba(8,15,25,.97);border:1px solid #263853;border-radius:18px;overflow:hidden}
+    #panel.open{display:block}
+    .panelhead{display:flex;justify-content:space-between;align-items:center;padding:13px;border-bottom:1px solid #213149}
+    .panelhead b{font-size:14px}
+    #closePanel{width:38px;height:38px;background:#17243a;color:#fff}
+    #nodeList{max-height:330px;overflow:auto;padding:8px}
+    .node{display:grid;grid-template-columns:auto 1fr auto;gap:9px;align-items:center;padding:9px;border-bottom:1px solid #1d2a3d}
+    .nid{width:40px;height:40px;border-radius:11px;background:#18365e;display:grid;place-items:center;font-weight:850}
+    .coord{font-size:11px;line-height:1.35}
+    .meta{font-size:10px;color:#92a3bb;margin-top:2px}
+    .seg{font-size:10px;color:#c8d4e4}
+  </style>
+</head>
+<body>
+<div id="app">
+  <video id="camera" autoplay muted playsinline></video>
+  <canvas id="arCanvas"></canvas>
+  <div class="shade"></div>
+
+  <div id="startScreen">
+    <div class="card">
+      <h1>Administrador de Rutas RA</h1>
+      <p>La cámara, GPS y brújula funcionan en tiempo real. Camina la ruta y pulsa <b>Añadir nodo</b> para fijar cada punto.</p>
+      <input id="routeName" value="Ruta de prueba" maxlength="80" aria-label="Nombre de la ruta">
+      <button id="startAR" type="button">Iniciar RA</button>
+      <div class="note">Necesita HTTPS. En Android usa Chrome. En iPhone usa Safari. Autoriza cámara, ubicación precisa y sensores.</div>
+    </div>
+  </div>
+
+  <div class="top">
+    <div class="header">
+      <div>
+        <div id="title" class="name">Ruta de prueba</div>
+        <div class="sub">Levantamiento georreferenciado en tiempo real</div>
+      </div>
+      <div id="count" class="badge">0 nodos</div>
+    </div>
+    <div class="hud">
+      <div class="hudbox"><small>GPS</small><b id="gps">—</b></div>
+      <div class="hudbox"><small>Precisión</small><b id="accuracy">—</b></div>
+      <div class="hudbox"><small>Orientación</small><b id="heading">—</b></div>
+    </div>
+  </div>
+
+  <div class="cross"><i></i></div>
+  <div id="markers"></div>
+  <div id="status" class="status">Pulsa Iniciar RA.</div>
+
+  <div class="controls">
+    <div class="mainrow">
+      <button id="undo" class="ghost" type="button" disabled>↶</button>
+      <button id="addNode" type="button" disabled>+ AÑADIR NODO</button>
+      <button id="listBtn" class="ghost" type="button">☰</button>
+    </div>
+    <div class="subrow">
+      <button id="toggleNodes" class="ghost" type="button">Ocultar nodos RA</button>
+      <button id="exportBtn" class="ghost" type="button" disabled>Exportar JSON</button>
+    </div>
+  </div>
+
+  <div id="panel">
+    <div class="panelhead"><b>Nodos de la ruta</b><button id="closePanel" class="ghost" type="button">×</button></div>
+    <div id="nodeList"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const els = {
+    camera:$('camera'), canvas:$('arCanvas'), startScreen:$('startScreen'),
+    routeName:$('routeName'), startAR:$('startAR'), title:$('title'),
+    count:$('count'), gps:$('gps'), accuracy:$('accuracy'), heading:$('heading'),
+    status:$('status'), markers:$('markers'), addNode:$('addNode'),
+    undo:$('undo'), listBtn:$('listBtn'), panel:$('panel'), closePanel:$('closePanel'),
+    nodeList:$('nodeList'), toggleNodes:$('toggleNodes'), exportBtn:$('exportBtn')
+  };
+
+  const state = {
+    stream:null,
+    watchId:null,
+    position:null,
+    heading:null,
+    pitch:0,
+    nodes:[],
+    markersVisible:true,
+    markerEls:[],
+    raf:null
+  };
+
+  const toRad = d => d * Math.PI / 180;
+  const toDeg = r => r * 180 / Math.PI;
+
+  function distance(a,b){
+    const R=6371000;
+    const dLat=toRad(b.latitude-a.latitude);
+    const dLon=toRad(b.longitude-a.longitude);
+    const la1=toRad(a.latitude), la2=toRad(b.latitude);
+    const h=Math.sin(dLat/2)**2 + Math.cos(la1)*Math.cos(la2)*Math.sin(dLon/2)**2;
+    return 2*R*Math.asin(Math.sqrt(h));
+  }
+
+  function bearing(a,b){
+    const la1=toRad(a.latitude), la2=toRad(b.latitude);
+    const dLon=toRad(b.longitude-a.longitude);
+    const y=Math.sin(dLon)*Math.cos(la2);
+    const x=Math.cos(la1)*Math.sin(la2)-Math.sin(la1)*Math.cos(la2)*Math.cos(dLon);
+    return (toDeg(Math.atan2(y,x))+360)%360;
+  }
+
+  function angleDiff(target,current){
+    return ((target-current+540)%360)-180;
+  }
+
+  function cardinal(h){
+    const names=['N','NE','E','SE','S','SO','O','NO'];
+    return names[Math.round(h/45)%8];
+  }
+
+  function totalDistance(){
+    let total=0;
+    for(let i=1;i<state.nodes.length;i++) total += distance(state.nodes[i-1],state.nodes[i]);
+    return total;
+  }
+
+  function setStatus(msg){ els.status.textContent=msg; }
+
+  async function startCamera(){
+    if(!navigator.mediaDevices?.getUserMedia) throw new Error('Este navegador no permite acceso a la cámara.');
+    state.stream = await navigator.mediaDevices.getUserMedia({
+      video:{
+        facingMode:{ideal:'environment'},
+        width:{ideal:1920},
+        height:{ideal:1080}
+      },
+      audio:false
+    });
+    els.camera.srcObject=state.stream;
+    await els.camera.play();
+  }
+
+  async function startOrientation(){
+    if(typeof DeviceOrientationEvent === 'undefined') return;
+
+    if(typeof DeviceOrientationEvent.requestPermission === 'function'){
+      const result = await DeviceOrientationEvent.requestPermission();
+      if(result !== 'granted') throw new Error('No se autorizó el sensor de orientación.');
+    }
+
+    const onOrientation = ev => {
+      let h=null;
+
+      if(typeof ev.webkitCompassHeading === 'number'){
+        h=ev.webkitCompassHeading;
+      } else if(typeof ev.alpha === 'number'){
+        h=(360-ev.alpha)%360;
+      }
+
+      if(Number.isFinite(h)){
+        state.heading=h;
+      }
+
+      if(Number.isFinite(ev.beta)){
+        state.pitch=ev.beta;
+      }
+    };
+
+    if('ondeviceorientationabsolute' in window){
+      window.addEventListener('deviceorientationabsolute',onOrientation,true);
+    } else {
+      window.addEventListener('deviceorientation',onOrientation,true);
+    }
+  }
+
+  function startGPS(){
+    if(!navigator.geolocation) throw new Error('Este navegador no permite geolocalización.');
+
+    state.watchId = navigator.geolocation.watchPosition(
+      pos => {
+        const c=pos.coords;
+        state.position={
+          latitude:c.latitude,
+          longitude:c.longitude,
+          altitude:Number.isFinite(c.altitude)?c.altitude:null,
+          accuracy:Number.isFinite(c.accuracy)?c.accuracy:999,
+          heading:Number.isFinite(c.heading)?c.heading:null,
+          speed:Number.isFinite(c.speed)?c.speed:null,
+          timestamp:pos.timestamp
+        };
+
+        els.gps.textContent=c.latitude.toFixed(5)+', '+c.longitude.toFixed(5);
+        els.accuracy.textContent='±'+state.position.accuracy.toFixed(1)+' m';
+        els.addNode.disabled=false;
+
+        if(state.position.accuracy<=8){
+          setStatus('GPS listo. Puedes registrar un nodo.');
+        } else if(state.position.accuracy<=15){
+          setStatus('GPS aceptable. Puedes registrar, aunque conviene esperar si mejora.');
+        } else {
+          setStatus('Precisión GPS baja. Intenta una zona más abierta.');
+        }
+      },
+      err => {
+        const msgs={
+          1:'Permiso de ubicación rechazado.',
+          2:'Ubicación no disponible.',
+          3:'El GPS tardó demasiado.'
+        };
+        setStatus(msgs[err.code] || 'Error al obtener ubicación.');
+      },
+      {
+        enableHighAccuracy:true,
+        maximumAge:0,
+        timeout:15000
+      }
+    );
+  }
+
+  function rebuildMarkers(){
+    state.markerEls.forEach(m=>m.remove());
+    state.markerEls=[];
+
+    state.nodes.forEach((node,i)=>{
+      const el=document.createElement('div');
+      el.className='marker';
+      el.innerHTML='<div class="dot">N'+(i+1)+'</div><div class="info"></div>';
+      els.markers.appendChild(el);
+      state.markerEls.push(el);
+    });
+  }
+
+  function renderList(){
+    els.count.textContent=state.nodes.length+' nodo'+(state.nodes.length===1?'':'s')+' · '+totalDistance().toFixed(1)+' m';
+    els.undo.disabled=state.nodes.length===0;
+    els.exportBtn.disabled=state.nodes.length===0;
+
+    if(!state.nodes.length){
+      els.nodeList.innerHTML='<div style="padding:16px;color:#91a2b8;font-size:12px">Aún no hay nodos.</div>';
+      return;
+    }
+
+    els.nodeList.innerHTML=state.nodes.map((n,i)=>{
+      const seg=i===0?'Inicio':distance(state.nodes[i-1],n).toFixed(1)+' m';
+      return '<div class="node">'+
+        '<div class="nid">N'+String(i+1).padStart(2,'0')+'</div>'+
+        '<div class="coord">'+n.latitude.toFixed(7)+', '+n.longitude.toFixed(7)+
+        '<div class="meta">Precisión ±'+n.accuracy.toFixed(1)+' m</div></div>'+
+        '<div class="seg">'+seg+'</div>'+
+      '</div>';
+    }).join('');
+  }
+
+  function drawAR(){
+    cancelAnimationFrame(state.raf);
+
+    const loop=()=>{
+      const w=innerWidth;
+      const h=innerHeight;
+      const dpr=Math.min(devicePixelRatio||1,2);
+
+      if(els.canvas.width!==Math.round(w*dpr) || els.canvas.height!==Math.round(h*dpr)){
+        els.canvas.width=Math.round(w*dpr);
+        els.canvas.height=Math.round(h*dpr);
+        els.canvas.style.width=w+'px';
+        els.canvas.style.height=h+'px';
+      }
+
+      const ctx=els.canvas.getContext('2d');
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+      ctx.clearRect(0,0,w,h);
+
+      if(Number.isFinite(state.heading)){
+        els.heading.textContent=Math.round(state.heading)+'° '+cardinal(state.heading);
+      }else{
+        els.heading.textContent='—';
+      }
+
+      const visible=[];
+      const horizontalFov=70;
+
+      state.markerEls.forEach((el,i)=>{
+        const node=state.nodes[i];
+
+        if(!state.markersVisible || !state.position || !Number.isFinite(state.heading)){
+          el.style.display='none';
+          return;
+        }
+
+        const d=distance(state.position,node);
+        const br=bearing(state.position,node);
+        const diff=angleDiff(br,state.heading);
+
+        if(Math.abs(diff)>horizontalFov/2+10 || d<0.7){
+          el.style.display='none';
+          return;
+        }
+
+        const x=w/2 + (diff/(horizontalFov/2))*(w/2);
+
+        // Aproximación visual de profundidad.
+        const depth=Math.max(1,d);
+        const scale=Math.max(.55,Math.min(1.25,14/depth));
+
+        // La inclinación del teléfono modifica la altura del horizonte.
+        const pitchOffset=Number.isFinite(state.pitch) ? (state.pitch-90)*1.2 : 0;
+        const y=h*.48 + pitchOffset - Math.min(80,Math.max(-45,(15-d)*1.7));
+
+        el.style.display='block';
+        el.style.left=x+'px';
+        el.style.top=y+'px';
+        el.style.transform='translate(-50%,-50%) scale('+scale+')';
+
+        el.querySelector('.info').textContent=d.toFixed(1)+' m · '+Math.round(br)+'°';
+
+        visible.push({x,y,index:i});
+      });
+
+      // Une en pantalla los nodos consecutivos visibles.
+      ctx.strokeStyle='rgba(255,255,255,.9)';
+      ctx.lineWidth=5;
+      ctx.lineCap='round';
+      ctx.setLineDash([12,9]);
+
+      for(let i=1;i<visible.length;i++){
+        const a=visible[i-1];
+        const b=visible[i];
+        if(b.index===a.index+1){
+          ctx.beginPath();
+          ctx.moveTo(a.x,a.y);
+          ctx.lineTo(b.x,b.y);
+          ctx.stroke();
+        }
+      }
+
+      ctx.setLineDash([]);
+      state.raf=requestAnimationFrame(loop);
+    };
+
+    loop();
+  }
+
+  els.startAR.addEventListener('click', async()=>{
+    try{
+      if(!window.isSecureContext && location.hostname!=='localhost'){
+        throw new Error('La RA necesita HTTPS para usar cámara, GPS y sensores.');
+      }
+
+      els.startAR.disabled=true;
+      els.startAR.textContent='Activando…';
+      els.title.textContent=els.routeName.value.trim() || 'Ruta de prueba';
+
+      await startCamera();
+      await startOrientation();
+      startGPS();
+
+      els.startScreen.style.display='none';
+      setStatus('RA activa. Esperando ubicación precisa.');
+      drawAR();
+    }catch(err){
+      els.startAR.disabled=false;
+      els.startAR.textContent='Iniciar RA';
+      alert(err.message || 'No se pudo iniciar la RA.');
+    }
+  });
+
+  els.addNode.addEventListener('click',()=>{
+    if(!state.position) return;
+
+    const node={
+      id:'N'+String(state.nodes.length+1).padStart(3,'0'),
+      order:state.nodes.length+1,
+      latitude:state.position.latitude,
+      longitude:state.position.longitude,
+      altitude:state.position.altitude,
+      accuracy:state.position.accuracy,
+      deviceHeading:Number.isFinite(state.heading)?state.heading:null,
+      createdAt:new Date().toISOString()
+    };
+
+    state.nodes.push(node);
+    rebuildMarkers();
+    renderList();
+
+    const prev=state.nodes[state.nodes.length-2];
+    const extra=prev ? ' · '+distance(prev,node).toFixed(1)+' m desde el anterior' : '';
+    setStatus(node.id+' registrado · precisión ±'+node.accuracy.toFixed(1)+' m'+extra);
+  });
+
+  els.undo.addEventListener('click',()=>{
+    if(!state.nodes.length) return;
+    const node=state.nodes.pop();
+    rebuildMarkers();
+    renderList();
+    setStatus(node.id+' eliminado.');
+  });
+
+  els.listBtn.addEventListener('click',()=>els.panel.classList.add('open'));
+  els.closePanel.addEventListener('click',()=>els.panel.classList.remove('open'));
+
+  els.toggleNodes.addEventListener('click',()=>{
+    state.markersVisible=!state.markersVisible;
+    els.toggleNodes.textContent=state.markersVisible?'Ocultar nodos RA':'Mostrar nodos RA';
+    if(!state.markersVisible){
+      state.markerEls.forEach(m=>m.style.display='none');
+    }
+  });
+
+  els.exportBtn.addEventListener('click',()=>{
+    if(!state.nodes.length) return;
+
+    const payload={
+      version:2,
+      mode:'real-time-js-ar-route-recorder',
+      route:{
+        name:els.title.textContent,
+        nodeCount:state.nodes.length,
+        totalDistanceMeters:Number(totalDistance().toFixed(2)),
+        exportedAt:new Date().toISOString()
+      },
+      nodes:state.nodes
+    };
+
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=(payload.route.name.replace(/[^\w\-]+/g,'_').slice(0,50)||'ruta_ra')+'.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    setStatus('Ruta exportada en JSON.');
+  });
+
+  renderList();
+})();
+</script>
+</body>
+</html>
