@@ -1,537 +1,356 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="theme-color" content="#07101b">
-<title>Mapa RA Híbrido V3</title>
-
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
-  }
-}
-</script>
-
-<style>
-*{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07101b;color:white;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-#app{position:fixed;inset:0}
-#threeRoot{position:absolute;inset:0}
-#threeRoot canvas{display:block;width:100%;height:100%}
-#pre{position:absolute;inset:0;z-index:20;background:radial-gradient(circle at 50% 25%,#172942,#07101b 62%);display:flex;align-items:center;justify-content:center;padding:18px}
-.card{width:min(100%,460px);background:#0c1727;border:1px solid #263b57;border-radius:22px;padding:18px}
-.card h1{font-size:22px;margin:0 0 7px}
-.card p{font-size:13px;color:#aebace;line-height:1.45;margin:0 0 12px}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-label{display:block;font-size:11px;color:#98a8bd;margin-bottom:5px}
-select,input{width:100%;height:46px;border:1px solid #2a405e;border-radius:12px;background:#081321;color:white;padding:0 10px;font-size:16px}
-button{border:0;border-radius:13px;min-height:46px;font:inherit;font-weight:800;cursor:pointer}
-#enterAR{width:100%;margin-top:10px;background:#2563eb;color:white}
-.note{font-size:10px;color:#7f91a9;line-height:1.4;margin-top:10px}
-#hud{position:absolute;z-index:10;left:10px;right:10px;top:max(10px,env(safe-area-inset-top));display:none}
-.top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
-.title{font-size:15px;font-weight:850;text-shadow:0 2px 8px #000}
-.sub{font-size:10px;color:#d5deea;margin-top:2px;text-shadow:0 2px 8px #000}
-.pill{background:rgba(7,16,27,.78);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:7px 9px;font-size:10px}
-.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
-.metric{min-width:0;background:rgba(7,16,27,.75);border:1px solid rgba(255,255,255,.13);backdrop-filter:blur(8px);border-radius:11px;padding:7px 8px}
-.metric small{display:block;font-size:8px;text-transform:uppercase;letter-spacing:.06em;color:#aeb8c8}
-.metric b{display:block;font-size:10px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#message{position:absolute;z-index:10;left:10px;right:10px;bottom:156px;background:rgba(7,16,27,.82);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.13);border-radius:12px;padding:9px 10px;font-size:11px;line-height:1.35;display:none}
-#controls{position:absolute;z-index:11;left:10px;right:10px;bottom:max(10px,env(safe-area-inset-bottom));display:none;gap:7px}
-.controlrow{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-.controlrow.three{grid-template-columns:56px 1fr 56px}
-.ghost{background:rgba(7,16,27,.83);color:white;border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(8px)}
-.good{background:#22c55e;color:#06150a}
-.warn{background:#f59e0b;color:#231600}
-#panel{position:absolute;z-index:16;left:10px;right:10px;bottom:10px;max-height:68%;background:rgba(7,16,27,.97);border:1px solid #29405e;border-radius:18px;overflow:hidden;display:none}
-#panel.open{display:block}
-.panelhead{display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid #263852}
-#closePanel{width:38px;height:38px;background:#16263d;color:white}
-#nodeList{max-height:330px;overflow:auto;padding:8px}
-.node{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:9px;border-bottom:1px solid #1d2d43}
-.nid{width:40px;height:40px;border-radius:11px;background:#183963;display:grid;place-items:center;font-weight:850}
-.meta{font-size:11px;line-height:1.35}.small{font-size:9px;color:#91a4bd}
-#xrButton{position:absolute!important;left:50%!important;bottom:20px!important;transform:translateX(-50%)!important;z-index:25!important}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1220" />
+  <title>Grabador de Nodos GPS</title>
+  <style>
+    :root{
+      --bg:#07111f;
+      --panel:#0f1b2d;
+      --panel2:#14243a;
+      --text:#f3f6fb;
+      --muted:#9fb0c6;
+      --accent:#4aa3ff;
+      --good:#35d07f;
+      --danger:#ff5e6c;
+      --border:rgba(255,255,255,.10);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:linear-gradient(180deg,#07111f,#0b1626);
+      color:var(--text);
+      min-height:100vh;
+    }
+    .app{max-width:760px;margin:auto;padding:18px}
+    .header{
+      display:flex;justify-content:space-between;align-items:center;gap:14px;
+      margin-bottom:18px
+    }
+    h1{font-size:1.35rem;margin:0}
+    .badge{
+      font-size:.8rem;color:var(--muted);
+      background:var(--panel);border:1px solid var(--border);
+      padding:7px 10px;border-radius:999px
+    }
+    .card{
+      background:rgba(15,27,45,.94);
+      border:1px solid var(--border);
+      border-radius:20px;
+      padding:18px;
+      box-shadow:0 18px 50px rgba(0,0,0,.24);
+      margin-bottom:14px;
+    }
+    .status{
+      display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px
+    }
+    .metric{
+      background:var(--panel2);
+      border:1px solid var(--border);
+      border-radius:14px;padding:12px
+    }
+    .metric small{display:block;color:var(--muted);margin-bottom:4px}
+    .metric strong{font-size:1rem;word-break:break-all}
+    .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+    button{
+      border:0;border-radius:14px;padding:14px 16px;font-size:1rem;
+      font-weight:700;cursor:pointer;transition:.16s transform,.16s opacity
+    }
+    button:active{transform:scale(.98)}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    .primary{background:var(--accent);color:white}
+    .secondary{background:#223653;color:white;border:1px solid var(--border)}
+    .danger{background:rgba(255,94,108,.14);color:#ff98a2;border:1px solid rgba(255,94,108,.25)}
+    .full{grid-column:1/-1}
+    .live{
+      display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.9rem;margin-top:12px
+    }
+    .dot{width:9px;height:9px;border-radius:50%;background:#67778d}
+    .dot.ok{background:var(--good);box-shadow:0 0 0 5px rgba(53,208,127,.11)}
+    .list-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+    .list-head h2{font-size:1rem;margin:0}
+    .node{
+      border:1px solid var(--border);
+      background:var(--panel2);
+      border-radius:15px;padding:13px;margin-top:10px
+    }
+    .node-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+    .node-title{font-weight:800}
+    .node-time{font-size:.78rem;color:var(--muted)}
+    .coords{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88rem;margin-top:8px;line-height:1.55}
+    .node-actions{display:flex;gap:8px;margin-top:10px}
+    .node-actions button{padding:8px 10px;font-size:.82rem;border-radius:10px}
+    .empty{color:var(--muted);text-align:center;padding:24px 8px}
+    .notice{
+      color:var(--muted);font-size:.82rem;line-height:1.45;margin-top:10px
+    }
+    @media (max-width:520px){
+      .status,.actions{grid-template-columns:1fr}
+      .full{grid-column:auto}
+    }
+  </style>
 </head>
 <body>
-<div id="app">
-  <div id="threeRoot"></div>
+<div class="app">
+  <div class="header">
+    <h1>Grabador de Nodos GPS</h1>
+    <div class="badge"><span id="count">0</span> nodos</div>
+  </div>
 
-  <div id="pre">
-    <div class="card">
-      <h1>Mapa RA Híbrido V3</h1>
-      <p><b>RA real con WebXR.</b> El GPS identifica la zona aproximada. En RA, apunta la retícula al punto físico de referencia y alinea el teléfono con la flecha de orientación antes de calibrar.</p>
+  <section class="card">
+    <div><strong>Ubicación actual</strong></div>
 
-      <div class="row">
-        <div>
-          <label for="zoneSelect">Zona</label>
-          <select id="zoneSelect">
-            <option value="A">A · Punto de inicio</option>
-            <option value="B">B · Biblioteca</option>
-          </select>
-        </div>
-        <div>
-          <label for="routeName">Ruta</label>
-          <input id="routeName" value="Inicio → Biblioteca" maxlength="80">
-        </div>
+    <div class="status">
+      <div class="metric">
+        <small>Latitud</small>
+        <strong id="lat">—</strong>
       </div>
-
-      <button id="enterAR" type="button">Comprobar RA</button>
-      <div id="compat" class="note">Comprobando WebXR y GPS…</div>
-      <div class="note">
-        Requiere HTTPS + Android/Chrome compatible con WebXR/ARCore. Esta V3 hace calibración <b>manual sobre una referencia visual</b>; no usa brújula magnética.
+      <div class="metric">
+        <small>Longitud</small>
+        <strong id="lng">—</strong>
+      </div>
+      <div class="metric">
+        <small>Precisión GPS</small>
+        <strong id="acc">—</strong>
+      </div>
+      <div class="metric">
+        <small>Última lectura</small>
+        <strong id="time">—</strong>
       </div>
     </div>
-  </div>
 
-  <div id="hud">
-    <div class="top">
-      <div><div id="routeTitle" class="title">Inicio → Biblioteca</div><div class="sub">Tracking 6DoF · WebXR</div></div>
-      <div id="nodeCount" class="pill">0 nodos</div>
+    <div class="live">
+      <span class="dot" id="dot"></span>
+      <span id="status">Esperando ubicación…</span>
     </div>
-    <div class="metrics">
-      <div class="metric"><small>Zona</small><b id="zoneText">A</b></div>
-      <div class="metric"><small>GPS</small><b id="gpsText">—</b></div>
-      <div class="metric"><small>Calibración</small><b id="calText">Pendiente</b></div>
-    </div>
-  </div>
 
-  <div id="message">Busca una superficie. La retícula aparecerá cuando ARCore detecte el entorno.</div>
+    <div class="actions">
+      <button class="secondary" id="locateBtn">Actualizar ubicación</button>
+      <button class="primary" id="addBtn" disabled>+ Agregar nodo</button>
+      <button class="secondary" id="jsonBtn">Exportar JSON</button>
+      <button class="secondary" id="csvBtn">Exportar CSV</button>
+      <button class="danger full" id="clearBtn">Borrar todos los nodos</button>
+    </div>
 
-  <div id="controls">
-    <div class="controlrow">
-      <button id="calibrate" class="warn" type="button">CALIBRAR REFERENCIA</button>
-      <button id="addNode" class="good" type="button" disabled>+ AÑADIR NODO</button>
+    <div class="notice">
+      La geolocalización funciona en <strong>HTTPS</strong> o en <strong>localhost</strong>.
+      La precisión depende del GPS y de las condiciones del dispositivo.
     </div>
-    <div class="controlrow three">
-      <button id="undo" class="ghost" type="button" disabled>↶</button>
-      <button id="zoneNext" class="ghost" type="button">Cambiar zona</button>
-      <button id="listBtn" class="ghost" type="button">☰</button>
-    </div>
-    <div class="controlrow">
-      <button id="saveBtn" class="ghost" type="button">Guardar local</button>
-      <button id="exportBtn" class="ghost" type="button" disabled>Exportar JSON</button>
-    </div>
-  </div>
+  </section>
 
-  <div id="panel">
-    <div class="panelhead"><b>Nodos de la ruta</b><button id="closePanel" type="button">×</button></div>
-    <div id="nodeList"></div>
-  </div>
+  <section class="card">
+    <div class="list-head">
+      <h2>Nodos guardados</h2>
+      <span class="badge" id="accuracyHint">sin lectura</span>
+    </div>
+    <div id="nodes"></div>
+  </section>
 </div>
 
-<script type="module">
-import * as THREE from 'three';
-import { ARButton } from 'three/addons/webxr/ARButton.js';
+<script>
+const STORAGE_KEY = "gps_route_nodes_v1";
 
-const $ = id => document.getElementById(id);
-const E = {
-  pre:$('pre'),root:$('threeRoot'),zoneSelect:$('zoneSelect'),routeName:$('routeName'),
-  enterAR:$('enterAR'),compat:$('compat'),hud:$('hud'),routeTitle:$('routeTitle'),
-  nodeCount:$('nodeCount'),zoneText:$('zoneText'),gpsText:$('gpsText'),calText:$('calText'),
-  message:$('message'),controls:$('controls'),calibrate:$('calibrate'),addNode:$('addNode'),
-  undo:$('undo'),zoneNext:$('zoneNext'),listBtn:$('listBtn'),panel:$('panel'),
-  closePanel:$('closePanel'),nodeList:$('nodeList'),saveBtn:$('saveBtn'),exportBtn:$('exportBtn')
-};
+let currentPosition = null;
+let nodes = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
 
-const zones = {
-  A: {
-    id:'A', name:'Punto de inicio', anchorId:'A01',
-    gps:{lat:22.323519444444, lon:-97.880016666667},
-    map:{x:0, z:0, yaw:0}
-  },
-  B: {
-    id:'B', name:'Biblioteca', anchorId:'B01',
-    gps:{lat:22.324127777778, lon:-97.879777777778},
-    map:{x:24.5724, z:-67.6436, yaw:0}
-  }
-};
+const $ = (id) => document.getElementById(id);
 
-const state = {
-  zoneId:'A',
-  gps:null,
-  nodes:[],
-  calibrated:false,
-  worldFromCampus:new THREE.Matrix4(),
-  targetWorldFromCampus:new THREE.Matrix4(),
-  smoothStart:null,
-  smoothFrom:null,
-  latestFrame:null,
-  latestHitPose:null,
-  hitTestSource:null,
-  referenceSpace:null,
-  viewerSpace:null,
-  session:null,
-  routeName:'Inicio → Biblioteca'
-};
-
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.01, 100);
-scene.add(camera);
-
-const renderer = new THREE.WebGLRenderer({antialias:true,alpha:true});
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-renderer.setSize(innerWidth,innerHeight);
-renderer.xr.enabled = true;
-renderer.xr.setReferenceSpaceType('local-floor');
-E.root.appendChild(renderer.domElement);
-
-const hemi = new THREE.HemisphereLight(0xffffff,0x445566,2.0);
-scene.add(hemi);
-
-const reticle = new THREE.Mesh(
-  new THREE.RingGeometry(0.08,0.11,32).rotateX(-Math.PI/2),
-  new THREE.MeshBasicMaterial({color:0x22c55e})
-);
-reticle.matrixAutoUpdate=false;
-reticle.visible=false;
-scene.add(reticle);
-
-const nodeGroup = new THREE.Group();
-scene.add(nodeGroup);
-
-const lineMat = new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.85});
-let routeLine = null;
-
-function hav(a,b){
-  const R=6371000,rad=d=>d*Math.PI/180;
-  const dlat=rad(b.lat-a.lat),dlon=rad(b.lon-a.lon);
-  const x=Math.sin(dlat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dlon/2)**2;
-  return 2*R*Math.asin(Math.sqrt(x));
+function saveNodes(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(nodes));
+  renderNodes();
 }
 
-function chooseNearestZone(){
-  if(!state.gps) return;
-  let best=null;
-  for(const z of Object.values(zones)){
-    const d=hav({lat:state.gps.lat,lon:state.gps.lon},z.gps);
-    if(!best||d<best.d) best={id:z.id,d};
-  }
-  if(best && best.d<80){
-    state.zoneId=best.id;
-    E.zoneSelect.value=best.id;
-    E.zoneText.textContent=best.id+' · '+zones[best.id].name;
-  }
+function fmt(n, digits=7){
+  return Number(n).toFixed(digits);
 }
 
-function startGPS(){
-  if(!navigator.geolocation) return;
-  navigator.geolocation.watchPosition(p=>{
-    state.gps={lat:p.coords.latitude,lon:p.coords.longitude,accuracy:p.coords.accuracy};
-    E.gpsText.textContent='±'+Math.round(p.coords.accuracy)+' m';
-    chooseNearestZone();
-  },()=>{E.gpsText.textContent='Sin GPS'},{enableHighAccuracy:true,maximumAge:0,timeout:15000});
-}
+function renderNodes(){
+  $("count").textContent = nodes.length;
+  const container = $("nodes");
+  container.innerHTML = "";
 
-function zoneMatrix(zone){
-  const m=new THREE.Matrix4();
-  const q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),THREE.MathUtils.degToRad(zone.map.yaw));
-  m.compose(new THREE.Vector3(zone.map.x,0,zone.map.z),q,new THREE.Vector3(1,1,1));
-  return m;
-}
-
-function cameraYawQuaternion(){
-  const q=new THREE.Quaternion();
-  camera.getWorldQuaternion(q);
-  const e=new THREE.Euler().setFromQuaternion(q,'YXZ');
-  return new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),e.y);
-}
-
-function calibrateAtReticle(){
-  if(!state.latestHitPose || !reticle.visible){
-    E.message.textContent='No hay superficie detectada todavía. Apunta al marcador físico o al suelo junto a él.';
+  if(!nodes.length){
+    container.innerHTML = '<div class="empty">Aún no hay nodos guardados.</div>';
     return;
   }
 
-  const zone=zones[state.zoneId];
+  [...nodes].reverse().forEach((node) => {
+    const realIndex = nodes.findIndex(n => n.id === node.id);
+    const el = document.createElement("div");
+    el.className = "node";
+    el.innerHTML = `
+      <div class="node-top">
+        <div>
+          <div class="node-title">Nodo ${realIndex + 1}</div>
+          <div class="node-time">${new Date(node.timestamp).toLocaleString()}</div>
+        </div>
+        <div class="badge">±${Math.round(node.accuracy)} m</div>
+      </div>
+      <div class="coords">
+        lat: ${fmt(node.latitude)}<br>
+        lng: ${fmt(node.longitude)}
+      </div>
+      <div class="node-actions">
+        <button class="secondary" data-copy="${node.id}">Copiar</button>
+        <button class="danger" data-delete="${node.id}">Eliminar</button>
+      </div>
+    `;
+    container.appendChild(el);
+  });
 
-  // Observed anchor in current XR world:
-  // translation from hit-test + yaw taken from the phone direction.
-  const observedPos=new THREE.Vector3();
-  reticle.getWorldPosition(observedPos);
-  const observedYaw=cameraYawQuaternion();
-  const observed=new THREE.Matrix4().compose(observedPos,observedYaw,new THREE.Vector3(1,1,1));
+  container.querySelectorAll("[data-delete]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.delete;
+      nodes = nodes.filter(n => String(n.id) !== String(id));
+      saveNodes();
+    });
+  });
 
-  // Expected anchor pose in the persistent campus coordinate system.
-  const expected=zoneMatrix(zone);
+  container.querySelectorAll("[data-copy]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const node = nodes.find(n => String(n.id) === String(btn.dataset.copy));
+      if(!node) return;
+      const text = `${node.latitude}, ${node.longitude}`;
+      await navigator.clipboard.writeText(text);
+      const old = btn.textContent;
+      btn.textContent = "Copiado";
+      setTimeout(() => btn.textContent = old, 900);
+    });
+  });
+}
 
-  // worldFromCampus = observedWorldAnchor * inverse(expectedCampusAnchor)
-  const corrected=observed.clone().multiply(expected.clone().invert());
+function updateCurrent(pos){
+  const c = pos.coords;
+  currentPosition = {
+    latitude: c.latitude,
+    longitude: c.longitude,
+    accuracy: c.accuracy,
+    altitude: c.altitude,
+    heading: c.heading,
+    speed: c.speed,
+    timestamp: pos.timestamp
+  };
 
-  if(state.calibrated){
-    state.smoothFrom=state.worldFromCampus.clone();
-    state.targetWorldFromCampus.copy(corrected);
-    state.smoothStart=performance.now();
-  } else {
-    state.worldFromCampus.copy(corrected);
-    state.targetWorldFromCampus.copy(corrected);
+  $("lat").textContent = fmt(c.latitude);
+  $("lng").textContent = fmt(c.longitude);
+  $("acc").textContent = `±${Math.round(c.accuracy)} m`;
+  $("time").textContent = new Date(pos.timestamp).toLocaleTimeString();
+  $("status").textContent = "Ubicación disponible";
+  $("dot").classList.add("ok");
+  $("addBtn").disabled = false;
+
+  let hint = "precisión media";
+  if(c.accuracy <= 5) hint = "muy buena";
+  else if(c.accuracy <= 10) hint = "buena";
+  else if(c.accuracy > 25) hint = "baja";
+  $("accuracyHint").textContent = hint;
+}
+
+function onLocationError(err){
+  currentPosition = null;
+  $("addBtn").disabled = true;
+  $("dot").classList.remove("ok");
+
+  const messages = {
+    1: "Permiso de ubicación denegado.",
+    2: "No se pudo determinar la ubicación.",
+    3: "La solicitud de ubicación tardó demasiado."
+  };
+  $("status").textContent = messages[err.code] || "Error obteniendo la ubicación.";
+}
+
+function locate(){
+  if(!navigator.geolocation){
+    $("status").textContent = "Este navegador no soporta geolocalización.";
+    return;
   }
 
-  state.calibrated=true;
-  E.calText.textContent=zone.anchorId+' ✓';
-  E.addNode.disabled=false;
-  E.message.textContent=zone.anchorId+' calibrado. Los nodos existentes se reposicionan sin cambiar sus coordenadas guardadas.';
-  rebuildNodeObjects();
-}
-
-function interpolateMatrix(from,to,t){
-  const pa=new THREE.Vector3(),qa=new THREE.Quaternion(),sa=new THREE.Vector3();
-  const pb=new THREE.Vector3(),qb=new THREE.Quaternion(),sb=new THREE.Vector3();
-  from.decompose(pa,qa,sa);to.decompose(pb,qb,sb);
-  pa.lerp(pb,t);qa.slerp(qb,t);sa.lerp(sb,t);
-  return new THREE.Matrix4().compose(pa,qa,sa);
-}
-
-function campusPointFromWorld(worldPos){
-  return worldPos.clone().applyMatrix4(state.worldFromCampus.clone().invert());
-}
-
-function zoneLocalFromCampus(campusPos,zone){
-  return campusPos.clone().applyMatrix4(zoneMatrix(zone).invert());
-}
-
-function campusFromNode(node){
-  const z=zones[node.zoneId];
-  return new THREE.Vector3(node.x,node.y,node.z).applyMatrix4(zoneMatrix(z));
+  $("status").textContent = "Obteniendo ubicación…";
+  navigator.geolocation.getCurrentPosition(
+    updateCurrent,
+    onLocationError,
+    {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0
+    }
+  );
 }
 
 function addNode(){
-  if(!state.calibrated) return;
+  if(!currentPosition) return;
 
-  // Record the real tracked phone position in the persistent campus coordinate frame.
-  const worldPos=new THREE.Vector3();
-  camera.getWorldPosition(worldPos);
-
-  // Ground-project the node. Device X/Z come from ARCore SLAM.
-  worldPos.y=0;
-
-  const campus=campusPointFromWorld(worldPos);
-  const local=zoneLocalFromCampus(campus,zones[state.zoneId]);
-
-  const node={
-    id:'N'+String(state.nodes.length+1).padStart(3,'0'),
-    order:state.nodes.length+1,
-    zoneId:state.zoneId,
-    anchorId:zones[state.zoneId].anchorId,
-    x:Number(local.x.toFixed(4)),
-    y:0,
-    z:Number(local.z.toFixed(4)),
-    createdAt:new Date().toISOString()
+  const node = {
+    id: (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()),
+    order: nodes.length + 1,
+    ...currentPosition,
+    savedAt: new Date().toISOString()
   };
-  state.nodes.push(node);
-  E.message.textContent=node.id+' guardado usando tracking 6DoF de ARCore.';
-  rebuildNodeObjects();
-  renderList();
+
+  nodes.push(node);
+  saveNodes();
+
+  $("status").textContent = `Nodo ${nodes.length} guardado`;
 }
 
-function makeLabelSprite(text){
-  const c=document.createElement('canvas');c.width=256;c.height=96;
-  const ctx=c.getContext('2d');
-  ctx.fillStyle='rgba(5,12,22,.82)';ctx.roundRect(8,8,240,80,18);ctx.fill();
-  ctx.fillStyle='white';ctx.font='bold 34px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,128,48);
-  const tex=new THREE.CanvasTexture(c);
-  const mat=new THREE.SpriteMaterial({map:tex,transparent:true});
-  const s=new THREE.Sprite(mat);s.scale.set(.8,.3,1);return s;
-}
-
-function rebuildNodeObjects(){
-  while(nodeGroup.children.length) nodeGroup.remove(nodeGroup.children[0]);
-  if(routeLine){scene.remove(routeLine);routeLine.geometry.dispose();routeLine=null}
-
-  if(!state.calibrated) return;
-
-  const points=[];
-  state.nodes.forEach((n,i)=>{
-    const campus=campusFromNode(n);
-    const world=campus.clone().applyMatrix4(state.worldFromCampus);
-
-    const group=new THREE.Group();
-    const sphere=new THREE.Mesh(
-      new THREE.SphereGeometry(.13,20,16),
-      new THREE.MeshStandardMaterial({color:0x2563eb,roughness:.55})
-    );
-    sphere.position.y=.25;
-    group.add(sphere);
-
-    const stem=new THREE.Mesh(
-      new THREE.CylinderGeometry(.018,.018,.5,10),
-      new THREE.MeshBasicMaterial({color:0xffffff})
-    );
-    stem.position.y=0;
-    group.add(stem);
-
-    const label=makeLabelSprite(n.id);
-    label.position.y=.58;
-    group.add(label);
-
-    group.position.copy(world);
-    nodeGroup.add(group);
-    points.push(new THREE.Vector3(world.x,.05,world.z));
-  });
-
-  if(points.length>1){
-    const g=new THREE.BufferGeometry().setFromPoints(points);
-    routeLine=new THREE.Line(g,lineMat);
-    scene.add(routeLine);
-  }
-
-  E.nodeCount.textContent=state.nodes.length+' nodo'+(state.nodes.length===1?'':'s');
-  E.undo.disabled=state.nodes.length===0;
-  E.exportBtn.disabled=state.nodes.length===0;
-}
-
-function renderList(){
-  E.nodeList.innerHTML=state.nodes.length?state.nodes.map(n=>`
-    <div class="node">
-      <div class="nid">${n.id.replace('N0','N')}</div>
-      <div class="meta"><b>Zona ${n.zoneId}</b><div class="small">x ${n.x.toFixed(2)} · z ${n.z.toFixed(2)} m</div></div>
-      <div class="small">${n.anchorId}</div>
-    </div>`).join(''):'<div class="small" style="padding:14px">Aún no hay nodos.</div>';
-}
-
-function saveLocal(){
-  localStorage.setItem('mapa_ra_hibrido_v3',JSON.stringify({
-    routeName:state.routeName,nodes:state.nodes
-  }));
-  E.message.textContent='Ruta guardada localmente.';
-}
-
-function loadLocal(){
-  try{
-    const d=JSON.parse(localStorage.getItem('mapa_ra_hibrido_v3')||'null');
-    if(d?.routeName){state.routeName=d.routeName;E.routeName.value=d.routeName;E.routeTitle.textContent=d.routeName}
-    if(Array.isArray(d?.nodes)) state.nodes=d.nodes;
-    renderList();
-  }catch(_e){}
+function downloadFile(filename, content, type){
+  const blob = new Blob([content], {type});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 500);
 }
 
 function exportJSON(){
-  const payload={
-    version:3,
-    mode:'webxr-hybrid-ar',
-    route:{name:state.routeName,nodeCount:state.nodes.length},
-    zones:Object.values(zones),
-    nodes:state.nodes
-  };
-  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download='ruta_ra_hibrida_v3.json';
-  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
-}
-
-async function setupXR(){
-  if(!window.isSecureContext){
-    E.compat.textContent='Necesita HTTPS.';
-    E.enterAR.disabled=true;
-    return;
-  }
-  if(!navigator.xr){
-    E.compat.textContent='WebXR no está disponible en este navegador. Usa Chrome en un Android compatible con ARCore.';
-    E.enterAR.disabled=true;
-    return;
-  }
-  const ok=await navigator.xr.isSessionSupported('immersive-ar');
-  E.compat.textContent=ok?'WebXR immersive-ar disponible ✓':'Este dispositivo/navegador no ofrece immersive-ar.';
-  E.enterAR.disabled=!ok;
-}
-
-E.enterAR.addEventListener('click',async()=>{
-  state.zoneId=E.zoneSelect.value;
-  state.routeName=E.routeName.value.trim()||'Ruta RA';
-  E.routeTitle.textContent=state.routeName;
-  E.zoneText.textContent=state.zoneId+' · '+zones[state.zoneId].name;
-
-  const button=ARButton.createButton(renderer,{
-    requiredFeatures:['hit-test','dom-overlay'],
-    optionalFeatures:['anchors','local-floor'],
-    domOverlay:{root:document.body}
-  });
-  button.id='xrButton';
-  document.body.appendChild(button);
-  E.pre.style.display='none';
-  button.click();
-});
-
-renderer.xr.addEventListener('sessionstart',async()=>{
-  state.session=renderer.xr.getSession();
-  E.hud.style.display='block';
-  E.message.style.display='block';
-  E.controls.style.display='grid';
-
-  state.referenceSpace=await state.session.requestReferenceSpace('local-floor').catch(
-    ()=>state.session.requestReferenceSpace('local')
+  downloadFile(
+    "nodos-ruta.json",
+    JSON.stringify(nodes, null, 2),
+    "application/json"
   );
-  state.viewerSpace=await state.session.requestReferenceSpace('viewer');
-  state.hitTestSource=await state.session.requestHitTestSource({space:state.viewerSpace});
-  E.message.textContent='RA activa. Mueve el teléfono lentamente para detectar superficies.';
-});
+}
 
-renderer.xr.addEventListener('sessionend',()=>{
-  E.hud.style.display='none';E.message.style.display='none';E.controls.style.display='none';
-});
+function exportCSV(){
+  const header = [
+    "nodo","latitud","longitud","precision_m","altitud","heading","speed","timestamp","savedAt"
+  ];
+  const rows = nodes.map((n,i) => [
+    i+1,
+    n.latitude,
+    n.longitude,
+    n.accuracy ?? "",
+    n.altitude ?? "",
+    n.heading ?? "",
+    n.speed ?? "",
+    new Date(n.timestamp).toISOString(),
+    n.savedAt
+  ]);
+  const csv = [header, ...rows]
+    .map(row => row.map(v => `"${String(v).replaceAll('"','""')}"`).join(","))
+    .join("\n");
 
-E.calibrate.addEventListener('click',calibrateAtReticle);
-E.addNode.addEventListener('click',addNode);
+  downloadFile("nodos-ruta.csv", csv, "text/csv;charset=utf-8");
+}
 
-E.undo.addEventListener('click',()=>{
-  if(!state.nodes.length)return;
-  const n=state.nodes.pop();
-  E.message.textContent=n.id+' eliminado.';
-  rebuildNodeObjects();renderList();
-});
-
-E.zoneNext.addEventListener('click',()=>{
-  state.zoneId=state.zoneId==='A'?'B':'A';
-  E.zoneSelect.value=state.zoneId;
-  E.zoneText.textContent=state.zoneId+' · '+zones[state.zoneId].name;
-  E.calText.textContent='Pendiente';
-  E.message.textContent='Zona '+state.zoneId+': ve a '+zones[state.zoneId].anchorId+', apunta la retícula al punto de referencia y calibra.';
-});
-
-E.listBtn.addEventListener('click',()=>E.panel.classList.add('open'));
-E.closePanel.addEventListener('click',()=>E.panel.classList.remove('open'));
-E.saveBtn.addEventListener('click',saveLocal);
-E.exportBtn.addEventListener('click',exportJSON);
-
-renderer.setAnimationLoop((time,frame)=>{
-  if(frame && state.hitTestSource && state.referenceSpace){
-    const hits=frame.getHitTestResults(state.hitTestSource);
-    if(hits.length){
-      const pose=hits[0].getPose(state.referenceSpace);
-      state.latestHitPose=pose;
-      reticle.visible=true;
-      reticle.matrix.fromArray(pose.transform.matrix);
-    }else{
-      reticle.visible=false;
-      state.latestHitPose=null;
-    }
+$("locateBtn").addEventListener("click", locate);
+$("addBtn").addEventListener("click", addNode);
+$("jsonBtn").addEventListener("click", exportJSON);
+$("csvBtn").addEventListener("click", exportCSV);
+$("clearBtn").addEventListener("click", () => {
+  if(confirm("¿Borrar todos los nodos guardados?")){
+    nodes = [];
+    saveNodes();
   }
-
-  // Smooth correction after recalibrating another zone.
-  if(state.smoothStart!==null && state.smoothFrom){
-    const p=Math.min(1,(performance.now()-state.smoothStart)/800);
-    const eased=1-Math.pow(1-p,3);
-    state.worldFromCampus.copy(interpolateMatrix(state.smoothFrom,state.targetWorldFromCampus,eased));
-    rebuildNodeObjects();
-    if(p>=1){state.smoothStart=null;state.smoothFrom=null}
-  }
-
-  renderer.render(scene,camera);
 });
 
-window.addEventListener('resize',()=>{
-  camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth,innerHeight);
-});
-
-startGPS();
-loadLocal();
-setupXR();
+renderNodes();
+locate();
 </script>
 </body>
 </html>
